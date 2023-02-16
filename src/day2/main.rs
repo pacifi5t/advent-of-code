@@ -1,8 +1,7 @@
 use anyhow::{anyhow, Result};
-use std::cmp::Ordering;
 use std::fs;
 
-#[derive(Eq, Ord, PartialEq, PartialOrd, Copy, Clone)]
+#[derive(Eq, PartialEq, Copy, Clone)]
 enum Shape {
     Rock = 1,
     Paper = 2,
@@ -11,12 +10,10 @@ enum Shape {
 
 impl Shape {
     pub fn play_with(&self, other: &Shape) -> (u32, u32) {
-        let points = match self.cmp(other) {
-            _ if (self, other) == (&Shape::Rock, &Shape::Scissors) => (6, 0),
-            _ if (self, other) == (&Shape::Scissors, &Shape::Rock) => (0, 6),
-            Ordering::Equal => (3, 3),
-            Ordering::Less => (0, 6),
-            Ordering::Greater => (6, 0),
+        let points = match self {
+            _ if self == other => (3, 3),
+            _ if self == &other.stronger() => (6, 0),
+            _ => (0, 6),
         };
 
         (points.0 + *self as u32, points.1 + *other as u32)
@@ -30,6 +27,14 @@ impl Shape {
             _ => return Err(anyhow!("Invalid character. Expected A, B, C, X, Y or Z")),
         };
         Ok(shape)
+    }
+
+    pub fn stronger(&self) -> Shape {
+        match self {
+            Shape::Rock => Shape::Paper,
+            Shape::Paper => Shape::Scissors,
+            Shape::Scissors => Shape::Rock,
+        }
     }
 }
 
