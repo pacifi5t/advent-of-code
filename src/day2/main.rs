@@ -8,6 +8,12 @@ enum Shape {
     Scissors = 3,
 }
 
+enum Outcome {
+    Win,
+    Loss,
+    Draw,
+}
+
 impl Shape {
     pub fn play_with(&self, other: &Shape) -> (u32, u32) {
         let points = match self {
@@ -36,21 +42,59 @@ impl Shape {
             Shape::Scissors => Shape::Rock,
         }
     }
+
+    pub fn weaker(&self) -> Shape {
+        match self {
+            Shape::Rock => Shape::Scissors,
+            Shape::Paper => Shape::Rock,
+            Shape::Scissors => Shape::Paper,
+        }
+    }
+}
+
+impl Outcome {
+    pub fn pick_shape(&self, shape: &Shape) -> Shape {
+        match self {
+            Outcome::Win => shape.stronger(),
+            Outcome::Loss => shape.weaker(),
+            Outcome::Draw => *shape,
+        }
+    }
+
+    pub fn from_char(c: char) -> Result<Outcome> {
+        let outcome = match c {
+            'X' => Outcome::Loss,
+            'Y' => Outcome::Draw,
+            'Z' => Outcome::Win,
+            _ => return Err(anyhow!("Invalid character. Expected X, Y or Z")),
+        };
+        Ok(outcome)
+    }
 }
 
 fn main() -> Result<()> {
     let data = fs::read_to_string("data/day2.txt")?;
+    let lines_iter = data.trim().split('\n').map(|s| s.chars());
 
-    let points = data
-        .trim()
-        .split('\n')
-        .map(|s| s.chars())
+    let points1 = lines_iter
+        .clone()
         .map(|mut c| (c.next().unwrap(), c.nth(1).unwrap()))
         .map(|(c1, c2)| (Shape::from_char(c1).unwrap(), Shape::from_char(c2).unwrap()))
         .map(|(opponents, yours)| yours.play_with(&opponents).0)
         .sum::<u32>();
+    println!("Part 1 points: {points1}");
 
-    println!("Points: {points}");
+    let points2 = lines_iter
+        .map(|mut c| (c.next().unwrap(), c.nth(1).unwrap()))
+        .map(|(c1, c2)| {
+            (
+                Shape::from_char(c1).unwrap(),
+                Outcome::from_char(c2).unwrap(),
+            )
+        })
+        .map(|(opponents, outcome)| outcome.pick_shape(&opponents).play_with(&opponents).0)
+        .sum::<u32>();
+    println!("Part 2 points: {points2}");
 
     Ok(())
 }
