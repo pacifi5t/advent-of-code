@@ -4,7 +4,7 @@ use std::path::Path;
 
 use anyhow::{bail, Result};
 
-pub trait FileTreeElem {
+pub trait Node {
     fn size(&self) -> usize;
 
     fn name(&self) -> &OsStr;
@@ -14,20 +14,20 @@ pub trait FileTreeElem {
 
 pub struct Directory {
     name: OsString,
-    contents: HashMap<OsString, Box<dyn FileTreeElem>>,
+    contents: HashMap<OsString, Box<dyn Node>>,
 }
 
 impl Directory {
-    pub fn new(name: OsString, contents: HashMap<OsString, Box<dyn FileTreeElem>>) -> Self {
+    pub fn new(name: OsString, contents: HashMap<OsString, Box<dyn Node>>) -> Self {
         Self { name, contents }
     }
 
-    pub fn contents(&mut self) -> &mut HashMap<OsString, Box<dyn FileTreeElem>> {
+    pub fn contents(&mut self) -> &mut HashMap<OsString, Box<dyn Node>> {
         &mut self.contents
     }
 }
 
-impl FileTreeElem for Directory {
+impl Node for Directory {
     fn size(&self) -> usize {
         self.contents.values().map(|e| e.size()).sum()
     }
@@ -65,7 +65,7 @@ impl File {
     }
 }
 
-impl FileTreeElem for File {
+impl Node for File {
     fn size(&self) -> usize {
         self.size
     }

@@ -18,13 +18,13 @@ fn main() -> Result<()> {
 
     let fully_contains = range_tuples
         .iter()
-        .map(|t| do_fully_contain(&t.0, &t.1) as i32)
+        .map(|t| i32::from(do_fully_contain(&t.0, &t.1)))
         .sum::<i32>();
     println!("Fully contains: {fully_contains}");
 
     let overlaps = range_tuples
         .iter()
-        .map(|t| do_overlap(&t.0, &t.1) as i32)
+        .map(|t| i32::from(do_overlap(&t.0, &t.1)))
         .sum::<i32>();
     println!("Overlaps: {overlaps}");
 
