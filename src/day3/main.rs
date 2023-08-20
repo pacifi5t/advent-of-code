@@ -8,7 +8,9 @@ fn main() -> Result<()> {
 
     let sets = elves.clone().map(|e| {
         let (s1, s2) = e.split_at(e.len() / 2);
-        HashSet::<char>::from_iter(s1.chars().filter(|c| s2.contains(*c)))
+        s1.chars()
+            .filter(|c| s2.contains(*c))
+            .collect::<HashSet<char>>()
     });
 
     let sum = sets
@@ -21,7 +23,7 @@ fn main() -> Result<()> {
     println!("Item priority sum: {sum}");
 
     let mut sum = 0;
-    let mut elves = elves.map(|s| HashSet::<char>::from_iter(s.chars()));
+    let mut elves = elves.map(|s| s.chars().collect::<HashSet<char>>());
     while let Some(elf1) = elves.next() {
         // All groups are full so those elves exist
         let (elf2, elf3) = (elves.next().unwrap(), elves.next().unwrap());

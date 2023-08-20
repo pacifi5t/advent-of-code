@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{bail, Result};
 
-use crate::file_tree::{Directory, File, FileTreeElem};
+use crate::file_tree::{Directory, File, Node};
 
 mod file_tree;
 
@@ -18,10 +18,13 @@ fn main() -> Result<()> {
     let lines: Vec<_> = data.split('\n').filter(|e| !e.is_empty()).collect();
     let (mut root, visited) = build_file_tree(&lines)?;
 
-    let dirs_map: HashMap<PathBuf, usize> = HashMap::from_iter(visited.into_iter().map(|path| {
-        let size = root.get_child_dir(&path).expect("exists").size();
-        (path.clone(), size)
-    }));
+    let dirs_map: HashMap<PathBuf, usize> = visited
+        .into_iter()
+        .map(|path| {
+            let size = root.get_child_dir(&path).expect("exists").size();
+            (path, size)
+        })
+        .collect();
 
     let total_size = dirs_map
         .values()
@@ -43,7 +46,7 @@ fn main() -> Result<()> {
 fn build_file_tree(lines: &[&str]) -> Result<(Directory, HashSet<PathBuf>)> {
     let mut root = Directory::new(OsString::from("/"), HashMap::new());
     let mut current_dir = PathBuf::from("");
-    let mut temp_elems = HashMap::<OsString, Box<dyn FileTreeElem>>::new();
+    let mut temp_elems = HashMap::<OsString, Box<dyn Node>>::new();
     let mut visited = HashSet::new();
 
     for line in lines {
@@ -84,7 +87,7 @@ fn build_file_tree(lines: &[&str]) -> Result<(Directory, HashSet<PathBuf>)> {
 fn save(
     root: &mut Directory,
     current_dir: &Path,
-    temp_elems: &mut HashMap<OsString, Box<dyn FileTreeElem>>,
+    temp_elems: &mut HashMap<OsString, Box<dyn Node>>,
 ) -> Result<()> {
     if !temp_elems.is_empty() {
         root.get_child_dir(current_dir)?
