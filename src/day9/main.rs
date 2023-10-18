@@ -1,20 +1,26 @@
+use anyhow::Error;
 use std::{collections::HashSet, fs};
 
 use anyhow::{bail, Result};
 
 #[derive(Copy, Clone, Default, PartialEq, Eq, Hash)]
-pub struct Point {
+pub struct Position {
     x: i32,
     y: i32,
 }
 
-impl Point {
+impl Position {
     pub fn new(x: i32, y: i32) -> Self {
         Self { x, y }
     }
 
-    pub fn distance_from(self, other: Point) -> (i32, i32) {
+    pub fn distance_from(self, other: Position) -> (i32, i32) {
         (self.x - other.x, self.y - other.y)
+    }
+
+    pub fn shift(&mut self, x: i32, y: i32) {
+        self.x += x;
+        self.y += y;
     }
 }
 
@@ -22,8 +28,15 @@ fn main() -> Result<()> {
     let data = fs::read_to_string("data/day9.txt")?;
     let lines: Vec<&str> = data.split('\n').filter(|s| !s.is_empty()).collect();
 
-    let (mut head, mut tail) = (Point::default(), Point::default());
-    let mut visited = HashSet::<Point>::from_iter(vec![Point::default()]);
+    simulate_2_knots(&lines)?;
+    simulate_10_knots(&lines)?;
+
+    Ok(())
+}
+
+fn simulate_2_knots(lines: &[&str]) -> Result<(), Error> {
+    let (mut head, mut tail) = (Position::default(), Position::default());
+    let mut visited = HashSet::<Position>::from_iter(vec![Position::default()]);
 
     for line in lines {
         let tokens: Vec<_> = line.split_whitespace().collect();
@@ -38,83 +51,81 @@ fn main() -> Result<()> {
                 _ => bail!("Undefined direction"),
             }
 
-            let shift = calc_tail_shift(head, tail);
-            tail.x += shift.0;
-            tail.y += shift.1;
+            let shift = pick_knot_shift(head, tail);
+            tail.shift(shift.0, shift.1);
             visited.insert(tail);
         }
     }
-
-    println!("{}", visited.len());
-
+    println!("2 knots, tail visited {} positions", visited.len());
     Ok(())
 }
 
-pub fn calc_tail_shift(head: Point, tail: Point) -> (i32, i32) {
-    let (x, y) = head.distance_from(tail);
+fn simulate_10_knots(lines: &[&str]) -> Result<(), Error> {
+    let mut knots = [Position::default(); 10];
+    let mut visited = HashSet::<Position>::from_iter(vec![Position::default()]);
 
-    if x.abs() == 2 {
-        match y.abs() {
-            0 => return (x / 2, 0),
-            1 => return (x / 2, y),
-            _ => panic!(),
+    for line in lines {
+        let tokens: Vec<_> = line.split_whitespace().collect();
+        let (direction, steps) = (tokens[0], tokens[1].parse::<i32>()?);
+
+        for _ in 0..steps {
+            let head = knots.first_mut().unwrap();
+            match direction {
+                "U" => head.y += 1,
+                "D" => head.y -= 1,
+                "R" => head.x += 1,
+                "L" => head.x -= 1,
+                _ => bail!("Undefined direction"),
+            }
+
+            for i in 1..knots.len() {
+                let prev = knots[i - 1];
+                let current = knots.get_mut(i).unwrap();
+                let shift = pick_knot_shift(prev, *current);
+                current.shift(shift.0, shift.1);
+            }
+
+            visited.insert(*knots.last().unwrap());
         }
     }
 
-    if y.abs() == 2 {
-        match x.abs() {
-            0 => return (0, y / 2),
-            1 => return (x, y / 2),
-            _ => panic!(),
-        }
-    }
-
-    (0, 0)
+    println!("10 knots, tail visited {} positions", visited.len());
+    Ok(())
 }
 
+pub fn pick_knot_shift(head: Position, tail: Position) -> (i32, i32) {
+    let (x, y) = head.distance_from(tail);
+    match (x.abs(), y.abs()) {
+        (2, 0) => (x / 2, 0),
+        (2, 1) => (x / 2, y),
+        (0, 2) => (0, y / 2),
+        (1, 2) => (x, y / 2),
+        (2, 2) => (x / 2, y / 2),
+        _ => (0, 0),
+    }
+}
+
+#[cfg(test)]
 mod test {
-    use crate::{calc_tail_shift, Point};
+    use crate::{pick_knot_shift, Position};
 
     #[test]
-    fn test_tail_chift_calc() {
-        assert_eq!(calc_tail_shift(Point::new(2, 0), Point::new(0, 0)), (1, 0));
-        assert_eq!(calc_tail_shift(Point::new(2, 1), Point::new(0, 0)), (1, 1));
-        assert_eq!(
-            calc_tail_shift(Point::new(2, -1), Point::new(0, 0)),
-            (1, -1)
-        );
+    fn test_tail_shift_calculation() {
+        let tail = Position::default();
+        assert_eq!(pick_knot_shift(Position::new(2, 0), tail), (1, 0));
+        assert_eq!(pick_knot_shift(Position::new(2, 1), tail), (1, 1));
+        assert_eq!(pick_knot_shift(Position::new(2, -1), tail), (1, -1));
 
-        assert_eq!(
-            calc_tail_shift(Point::new(-2, 0), Point::new(0, 0)),
-            (-1, 0)
-        );
-        assert_eq!(
-            calc_tail_shift(Point::new(-2, 1), Point::new(0, 0)),
-            (-1, 1)
-        );
-        assert_eq!(
-            calc_tail_shift(Point::new(-2, -1), Point::new(0, 0)),
-            (-1, -1)
-        );
+        assert_eq!(pick_knot_shift(Position::new(-2, 0), tail), (-1, 0));
+        assert_eq!(pick_knot_shift(Position::new(-2, 1), tail), (-1, 1));
+        assert_eq!(pick_knot_shift(Position::new(-2, -1), tail), (-1, -1));
 
-        assert_eq!(calc_tail_shift(Point::new(0, 2), Point::new(0, 0)), (0, 1));
-        assert_eq!(calc_tail_shift(Point::new(1, 2), Point::new(0, 0)), (1, 1));
-        assert_eq!(
-            calc_tail_shift(Point::new(-1, 2), Point::new(0, 0)),
-            (-1, 1)
-        );
+        assert_eq!(pick_knot_shift(Position::new(0, 2), tail), (0, 1));
+        assert_eq!(pick_knot_shift(Position::new(1, 2), tail), (1, 1));
+        assert_eq!(pick_knot_shift(Position::new(-1, 2), tail), (-1, 1));
 
-        assert_eq!(
-            calc_tail_shift(Point::new(0, -2), Point::new(0, 0)),
-            (0, -1)
-        );
-        assert_eq!(
-            calc_tail_shift(Point::new(1, -2), Point::new(0, 0)),
-            (1, -1)
-        );
-        assert_eq!(
-            calc_tail_shift(Point::new(-1, -2), Point::new(0, 0)),
-            (-1, -1)
-        );
+        assert_eq!(pick_knot_shift(Position::new(0, -2), tail), (0, -1));
+        assert_eq!(pick_knot_shift(Position::new(1, -2), tail), (1, -1));
+        assert_eq!(pick_knot_shift(Position::new(-1, -2), tail), (-1, -1));
     }
 }
