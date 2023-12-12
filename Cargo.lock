@@ -361,5 +361,6 @@ name = "year2022"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "aoc",
  "nalgebra",
 ]

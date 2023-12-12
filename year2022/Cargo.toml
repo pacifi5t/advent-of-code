@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.69"
 nalgebra = "0.32.3"
+aoc = {path = "../aoc"}
 
 [[bin]]
 name = "day1"
@@ -52,3 +53,7 @@ path = "src/day10/main.rs"
 [[bin]]
 name = "day11"
 path = "src/day11/main.rs"
+
+[[bin]]
+name = "day12"
+path = "src/day12/main.rs"
